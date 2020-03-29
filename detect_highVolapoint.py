@@ -214,18 +214,20 @@ def drow_Graph_Term(rate_np,size,highVola_index_list,min_rate , max_rate,rate_be
         marker_y = rate_np[i]
         marker_x = i
         #print("b")
-        plt.plot(marker_x, marker_y,marker='o', markersize=7)
+        plt.plot(marker_x, marker_y,marker='o', markersize=7,color='red')
 
 
     index_num = np.arange(0, size+1)  # X軸用
-    plt.plot(index_num, rate_np)
+    plt.plot(index_num, rate_np)       #折れ線グラフ
+    #plt.bar(index_num, rate_np)         #棒グラフ
     plt.ylim([min_rate,max_rate])
     plt.title('Random')
 
     plt.subplot(2,1,2)
     before_size = len(rate_before_np)
     index_num_before = np.arange(0, before_size)  # X軸用
-    plt.plot(index_num_before, rate_before_np)
+    plt.plot(index_num_before, rate_before_np) #折れ線グラフ
+    #plt.bar(index_num_before, rate_before_np)   #棒グラフ
 
     marker_x_before = before_size - size
     marker_y_before = rate_before_np[marker_x_before-1]
@@ -282,44 +284,71 @@ def minmax_serch( open_np ):
 
     return min , max
 
-def highvola_serch(open_np):
-    diff_open = np.diff(open_np)
-
-    diff_abs = np.abs(diff_open)
-
-    diff_var = np.var(diff_abs)
-    diff_mean = np.mean(diff_abs)
-
-    config = 6
-    mean_config = 2
+def get_diff_Theshold(rate_np_long):
     
-    #diff_Th_over = diff_mean + config*diff_var
-    diff_Th_over = diff_mean*mean_config
-    #diff_Th_under = diff_mean - config*diff_var
+    diff_open = np.diff(rate_np_long)    # diffをとる
+
+    diff_abs = np.abs(diff_open)        # diffの大きさを確認したいので絶対値を取る
+    diff_var_abs = np.var(diff_abs)     # 絶対値の分散
+    diff_mean_abs = np.mean(diff_abs)   # 絶対値の平均
+
+    return diff_mean_abs
+
+def highvola_serch(open_np,config,diff_mean_abs):
+    
+    diff_open = np.diff(open_np)    # diffをとる
+
+    diff_var = np.var(diff_open)
+    diff_mean = np.mean(diff_open)
+
+    #diffの絶対値の統計値
+    #diff_abs = np.abs(diff_open)
+    #diff_var_abs = np.var(diff_abs)
+    #diff_mean_abs = np.mean(diff_abs)
+
+    # しきい値の設定
+    diff_Th_over = diff_mean + diff_mean_abs*config
+    diff_Th_under = diff_mean - diff_mean_abs*config
+
+    """
+    plt.hist(diff_open, bins=100)
+    plt.axvline(x=diff_mean, color='red')
+    plt.axvline(x=diff_Th_over, color='red')
+    plt.axvline(x=diff_Th_under, color='red')
+    plt.show()
+    """
 
     index = 0
+    
     d_index_list = []
-    for i in diff_abs:
+    for i in diff_open:
         index = index+1
-        if i > diff_Th_over:
+     
+        # diffが下に、しきい値を超えた     
+        if i < diff_Th_under:
             d_index_list.append( index )
     
+        # diffが上にに、しきい値を超えた     
+        if diff_Th_over < i:
+            d_index_list.append( index )
+
     return d_index_list
 
-def Seq_highvola_serch(open_np):
+
+def Seq_highvola_serch(open_np,config,diff_mean_abs):
     #diffの統計値
     diff_open = np.diff(open_np)
     diff_var = np.var(diff_open)
     diff_mean = np.mean(diff_open)
 
     #diffの絶対値の統計値
-    diff_abs = np.abs(diff_open)
-    diff_var_abs = np.var(diff_abs)
-    diff_mean_abs = np.mean(diff_abs)
+    #diff_abs = np.abs(diff_open)
+    #diff_var_abs = np.var(diff_abs)
+    #diff_mean_abs = np.mean(diff_abs)
     
     # しきい値の設定
-    diff_Th_over = diff_mean + diff_mean_abs
-    diff_Th_under = diff_mean - diff_mean_abs
+    diff_Th_over = diff_mean + diff_mean_abs*config
+    diff_Th_under = diff_mean - diff_mean_abs*config
 
     """
     plt.hist(diff_open, bins=100)
@@ -337,7 +366,7 @@ def Seq_highvola_serch(open_np):
     for i in diff_open:
         index = index+1
         
-
+        """
         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -346,7 +375,7 @@ def Seq_highvola_serch(open_np):
         2回めが同符号で小さいdiffのときはどうなるのだろうか？これもTraceオーダーのポイントになるのではないか？
 
         5min足をつくったほうがいいんじゃない？？
-        
+        """
 
     
         # diffが下に、しきい値を超えた     
@@ -366,6 +395,73 @@ def Seq_highvola_serch(open_np):
                 d_index_list.append( index )
             seq_f_o = 1
         
+        else:
+            seq_f_o = 0
+
+    return d_index_list
+
+
+def Seq_Loose_highvola_serch(open_np,config,diff_mean_abs):
+    #diffの統計値
+    diff_open = np.diff(open_np)
+    diff_var = np.var(diff_open)
+    diff_mean = np.mean(diff_open)
+
+    #diffの絶対値の統計値
+    #diff_abs = np.abs(diff_open)
+    #diff_var_abs = np.var(diff_abs)
+    #diff_mean_abs = np.mean(diff_abs)
+    
+    Loose_Rate = 0.2
+
+    # しきい値の設定
+    diff_Th_over_Loose = diff_mean + diff_mean_abs*Loose_Rate
+    diff_Th_under_Loose = diff_mean - diff_mean_abs*Loose_Rate
+
+    # 2回目のLooseしきい値
+    diff_Th_over = diff_mean + diff_mean_abs*config
+    diff_Th_under = diff_mean - diff_mean_abs*config
+
+    """
+    plt.hist(diff_open, bins=100)
+    plt.axvline(x=diff_mean, color='red')
+    plt.axvline(x=diff_Th_over, color='red')
+    plt.axvline(x=diff_Th_under, color='red')
+    plt.show()
+    """
+
+    index = 0
+    seq_f_u = 0
+    seq_f_o = 0
+    
+    d_index_list = []
+    for i in diff_open:
+        index = index+1
+        
+        """
+        2回めが同符号で小さいdiffのときはどうなるのだろうか？これもTraceオーダーのポイントになるのではないか？
+        反発さえしなければ問題ない
+        """
+
+        # diffが下に、しきい値を超えた     
+        # diffの大きさが連続でしきい値を超えた
+        if seq_f_u == 1:
+            if i < diff_Th_over_Loose:          #2回目は反発じゃないかを確認するために、diffがちょいプラスまでは許容範囲とする
+                d_index_list.append( index )
+
+        if i < diff_Th_under:
+            seq_f_u = 1        
+        else:
+            seq_f_u = 0
+
+    
+        if seq_f_o == 1:
+            if diff_Th_under_Loose < i:          #2回目は反発じゃないかを確認するために、diffがちょいマイナスまでは許容範囲とする
+                d_index_list.append( index )
+        
+        # diffが上に、しきい値を超えた     
+        if diff_Th_over < i:
+            seq_f_o = 1
         else:
             seq_f_o = 0
 
@@ -413,28 +509,41 @@ def detect_minmax(df, min, max, rand_index, SAMPLE_SIZE):
 #df = pd.read_csv('/Users/apple/python/oanda/input_USDJPY_CSV/for_debug__USDJPY_10m_after2014.csv',index_col=0)
 '''ALL'''
 df = pd.read_csv('/Users/apple/python/oanda/input_USDJPY_CSV/USDJPY_10m_DIFF.csv',index_col=0)
+df_1m = pd.read_csv('/Users/apple/python/oanda/input_USDJPY_CSV/USDJPY_1m.csv',index_col=0)
 df_CD = pd.read_csv('/Users/apple/python/oanda/output_classified_csv/test_variation/classified_sample_100_ABSOLUTE_DIFF_THESHOLD_std1_64.csv',index_col=0)
-
 
 
 ##############################################################
 ###                    パラメータ設定 　　　　　　　            ###
 ##############################################################
 
-# SAMPLE_SIZE = 100
+### 10m 足のサンプル数 ###
 SAMPLE_SIZE = 6 * 24        #1日
-#SAMPLE_SIZE = 6 * 24 * 7    #1週間
-Before_SAMPLE_SIZE = 6 * 24 * 5#1日
-
-
+Before_SAMPLE_SIZE = 6 * 24 * 5 # 5日
 ans_size = 6 * 24           #1日
+
+### 1m 足のサンプル数 ###
+SAMPLE_SIZE_1m = 60 * 1        #1h
+Before_SAMPLE_SIZE_1m = SAMPLE_SIZE_1m * 5 
+
+ans_size = 60 * 1           #1h
+
+config = 1.9  # diffが大きいか、小さいかを判定するためのしきい値の倍率
 
 print(df_CD.describe())
 print(df_CD.head())
 print( df_CD['extreme_point'].value_counts() )
 
+
+##############################################################
+###                　　　　　　ループ 　　　　　　　            ###
+###     ランダムでデータを取得し、askをしたいタイミングにマーカー   ###
+##############################################################
+
 for i in range(100):
 
+    ### 10m足のグラフ
+    '''
     sample_block , date , rand_index = get_rand_sample_fromALLrate(df,SAMPLE_SIZE)
     
     RATE = df.loc[ rand_index:rand_index+SAMPLE_SIZE , 'OPEN'] # Y軸用
@@ -449,6 +558,31 @@ for i in range(100):
 
     drow_Graph_Term(rate_np, SAMPLE_SIZE,highVola_index_list,min_rate , max_rate,rate_before_np)        # レートのグラフを作成し後にどう動くのか予想する
     drow_Graph_Term(rate_np, SAMPLE_SIZE,Seq_highVola_index_list,min_rate , max_rate,rate_before_np)        # レートのグラフを作成し後にどう動くのか予想する
+    '''
+
+    ### 1m足のグラフ
     
+    sample_block , date , rand_index = get_rand_sample_fromALLrate(df_1m,SAMPLE_SIZE_1m)
+    
+    RATE = df_1m.loc[ rand_index:rand_index+SAMPLE_SIZE_1m , 'OPEN'] # Y軸用
+    rate_np = df_1m.loc[ rand_index:rand_index+SAMPLE_SIZE_1m , 'OPEN'].values # 最大/最小を調べる関数の引数としてnumpyにする
+
+    # diffが大きいかどうか判定するためのしきい値は、少し長めの区間をもとにして判別する
+    rate_np_long = df_1m.loc[ rand_index-Before_SAMPLE_SIZE_1m:rand_index+SAMPLE_SIZE_1m , 'OPEN'].values # 最大/最小を調べる関数の引数としてnumpyにする
+
+    diff_Th_abs = get_diff_Theshold(rate_np_long)
+
+    min_rate , max_rate = minmax_serch(rate_np)
+    highVola_index_list = highvola_serch(rate_np,config,diff_Th_abs)
+    Seq_double_highVola_index_list = Seq_highvola_serch(rate_np,config,diff_Th_abs)
+    Seq_Loose_highVola_index_list = Seq_Loose_highvola_serch(rate_np,config,diff_Th_abs)
+
+    rate_before_np = df_1m.loc[ rand_index-Before_SAMPLE_SIZE_1m:rand_index+SAMPLE_SIZE_1m , 'OPEN'].values # 最大/最小を調べる関数の引数としてnumpyにする
+
+
+    drow_Graph_Term(rate_np, SAMPLE_SIZE_1m,highVola_index_list,min_rate , max_rate,rate_before_np)        # レートのグラフを作成し後にどう動くのか予想する
+    drow_Graph_Term(rate_np, SAMPLE_SIZE_1m,Seq_Loose_highVola_index_list,min_rate , max_rate,rate_before_np)        # レートのグラフを作成し後にどう動くのか予想する
+    
+
     
    
